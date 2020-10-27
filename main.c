@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#define NDEBUG
 
 #define VKBIND_IMPLEMENTATION
 #include "vkbind.h"
@@ -51,14 +50,14 @@ int main(void)
 {
 	VK(vkbInit(NULL));
 
-	VkApplicationInfo application_info;
-	application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	application_info.pNext = NULL;
-	application_info.pApplicationName = "VkCompute";
-	application_info.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
-	application_info.pEngineName = "No name";
-	application_info.engineVersion = VK_MAKE_VERSION(0, 0, 1);
-	application_info.apiVersion = VK_MAKE_VERSION(1, 1, 0);
+	VkApplicationInfo app_info;
+	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+	app_info.pNext = NULL;
+	app_info.pApplicationName = "VkCompute";
+	app_info.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
+	app_info.pEngineName = "No name";
+	app_info.engineVersion = VK_MAKE_VERSION(0, 0, 1);
+	app_info.apiVersion = VK_MAKE_VERSION(1, 1, 0);
 
 	static char const * instance_layers [] = {"VK_LAYER_KHRONOS_validation"};
 
@@ -66,7 +65,7 @@ int main(void)
 	instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	instance_create_info.pNext = 0;
 	instance_create_info.flags = 0;
-	instance_create_info.pApplicationInfo = &application_info;
+	instance_create_info.pApplicationInfo = &app_info;
 #ifdef NDEBUG
 	instance_create_info.enabledLayerCount = 0;
 #else
@@ -76,34 +75,60 @@ int main(void)
 	instance_create_info.enabledExtensionCount = 0;
 	instance_create_info.ppEnabledExtensionNames = NULL;
 
-	VkInstance instance;
+	VkInstance instance = VK_NULL_HANDLE;
 	VK(vkCreateInstance(&instance_create_info, 0, &instance));
-	uint32_t devices;
-	VK(vkEnumeratePhysicalDevices(instance, &devices, NULL));
-	
-	VkPhysicalDevice physical_device;
-	VK(vkEnumeratePhysicalDevices(instance, &devices, &physical_device));
 
-	uint32_t queues;
-	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queues, NULL);
+	uint32_t physical_devices_count;
+	VK(vkEnumeratePhysicalDevices(instance, &physical_devices_count, NULL));
+	VkPhysicalDevice physical_devices[physical_devices_count];
+	VK(vkEnumeratePhysicalDevices(instance, &physical_devices_count, physical_devices));
 
-	VkQueueFamilyProperties queue_family_prop[queues];
-	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &devices, queue_family_prop);
-
-	/*
-	uint32_t queueu_family_index;
-
-	for (uint32_t i = 0; i < queues; i++)
+	for (uint32_t i = 0; i < physical_devices_count; ++i)
 	{
-		const VkQueueFlags maskedFlags = (~(VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT) &
+		uint32_t queues_count = 0;
+		vkGetPhysicalDeviceQueueFamilyProperties(physical_devices[i], &queues_count, NULL);
+		VkQueueFamilyProperties queue_family_prop[queues_count];
+		vkGetPhysicalDeviceQueueFamilyProperties(physical_devices[i], &physical_devices_count, queue_family_prop);
+
+		const VkQueueFlags availible_mask =  (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT);
+
+		printf("No of queyes families %d\n", queues_count);
+
+		for (uint32_t k = 0; k < queues_count; ++k) {
+			
+			if (queue_family_prop[0].queueFlags & availible_mask) {
+				printf("I got it all! %d\n", (uint8_t)queue_family_prop[0]);	
+
+			}
+		}
+
+		const VkQueueFlags flags_mask = (~(VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT) &
 				queue_family_prop[i].queueFlags);
 
-		if (VK_QUEUE_COMPUTE_BIT & maskedFlags)
-		{
-			queueu_family_index = i;
+		uint32_t queueu_family_index = 0;
+
+		for (uint32_t j = 0; j < queues_count; ++j) {
+
+			if (VK_QUEUE_COMPUTE_BIT & flags_mask)
+			{
+				queueu_family_index = i;
+			}
 		}
+
+		const float queue_prioritory = 1.0f;
+
+		VkDeviceQueueCreateInfo device_queue_create_info;
+
+		device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		device_queue_create_info.pNext = NULL;
+		device_queue_create_info.flags = 0;
+		device_queue_create_info.queueFamilyIndex = queueu_family_index;
+		device_queue_create_info.queueCount = 1;
+		device_queue_create_info.pNext = &queue_prioritory;
+
 	}
-	*/
+
+
 
 
 
